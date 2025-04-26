@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const bcrypt = require('bcryptjs');
+const passport = require('passport');
 const db = require("../models");
 const User = db.user;
 
@@ -42,67 +43,58 @@ router.post('/register', async (req, res) => {
 });
 
 // Basic login
-router.post('/login', async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    
-    // Find user
-    const user = await User.findOne({ where: { username } });
-    
+router.post('/login', async (req, res, next) => {
+  passport.authenticate('local', (err, user, info) => {
+    if (err) {
+      return next(err);
+    }
+
     if (!user) {
-      return res.status(401).json({ message: "Incorrect username or password" });
+      return res.status(401).json({message: info.message});
     }
-    
-    // Check password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    
-    if (!isPasswordValid) {
-      return res.status(401).json({ message: "Incorrect username or password" });
-    }
-    
-    // Create simple session
-    req.session.userId = user.id;
-    
-    // Don't send password back
-    const userResponse = { ...user.get() };
-    delete userResponse.password;
-    
-    res.status(200).json({
-      message: "Logged in successfully",
-      user: userResponse
+    req.login(user, (err) => {
+      if (err) {
+        return next(err);
+      }
+
+      user.password = undefined;
+
+      return res.status(200).json({
+        message: "Logged in successfully",
+        user
+      });
     });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
+  })(req, res, next);
 });
 
 // Logout
 router.post('/logout', (req, res) => {
-  req.session.destroy(err => {
+  req.logout(function(err) {
     if (err) {
-      return res.status(500).json({ message: "Could not log out" });
+      return next(err);
     }
-    res.status(200).json({ message: "Logged out successfully" });
-  });
+    res.status(200).json({message: "logged out successfully"});
+  })
 });
 
 // Check if user is authenticated
-router.get('/check', async (req, res) => {
+router.get('/check', (req, res) => {
   if (req.session.userId) {
-    try {
-      const user = await User.findByPk(req.session.userId);
-      if (user) {
-        // Don't send password back
-        const userResponse = { ...user.get() };
-        delete userResponse.password;
-        return res.status(200).json({ isAuthenticated: true, user: userResponse });
-      }
-    } catch (error) {
-      return res.status(500).json({ message: error.message });
-    }
+    req.user.password = undefined;
+    res.status(200).json({isAuthenticated: true, user: req.user});
+  } else {
+    res.status(200).json({isAuthenticated: false});
   }
-  
-  res.status(200).json({ isAuthenticated: false });
 });
+
+router.get('/google',
+  passport.authenticate('google', { scope: ['profile', 'email'] }));
+
+router.get('/google/callback', 
+  passport.authenticate('google', { failureRedirect: '/login' }),
+  function(req, res) {
+    // Successful authentication, redirect home.
+    res.redirect('/');
+  });
 
 module.exports = router;
