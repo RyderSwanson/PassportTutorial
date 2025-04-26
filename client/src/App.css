@@ -1,0 +1,37 @@
+.app {
+  font-family: Arial, sans-serif;
+  color: #333;
+  margin: 0 auto;
+}
+
+.container {
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  scrollbar-width: none; /* For Firefox */
+}
+
+.container::-webkit-scrollbar {
+  display: none; /* For Chrome, Safari, and Edge */
+}
+
+.btn {
+  display: inline-block;
+  background-color: #4285f4;
+  color: white;
+  padding: 10px 20px;
+  text-decoration: none;
+  border-radius: 4px;
+  font-weight: bold;
+  margin: 10px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.btn:hover {
+  background-color: #3367d6;
+}
